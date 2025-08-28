@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spaceship Grid Puzzle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 1400px;
+        }
+        .grid-container {
+            flex: 1;
+        }
+        .grid {
+            display: inline-block;
+            border: 3px solid #333;
+            background: #000;
+            padding: 5px;
+            border-radius: 10px;
+        }
+        .row {
+            display: flex;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #333;
+            margin: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            position: relative;
+            border-radius: 4px;
+        }
+        .yellow { background-color: #ffd700; color: black; }
+        .blue { background-color: #4169e1; color: white; }
+        .green { background-color: #32cd32; color: black; }
+        .empty { background-color: transparent; border: none; }
+        .visited { 
+            box-shadow: inset 0 0 0 3px #ff6b6b; 
+        }
+        .spaceship {
+            font-size: 20px;
+            z-index: 10;
+        }
+        
+        .controls {
+            flex: 1;
+            background: #2d2d44;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+        }
+        
+        .function-builder {
+            margin: 20px 0;
+        }
+        
+        .action-slot {
+            background: #3d3d5c;
+            border: 2px solid #555;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .action-slot:hover {
+            border-color: #777;
+            background: #4d4d6c;
+        }
+        
+        .action-slot.active {
+            border-color: #ffd700;
+            background: #5d5d7c;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .action-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .forward { background: #4CAF50; color: white; }
+        .left { background: #2196F3; color: white; }
+        .right { background: #FF9800; color: white; }
+        .f1-call { background: #9C27B0; color: white; }
+        .color-blue { background: #4169e1; color: white; }
+        .color-yellow { background: #ffd700; color: black; }
+        
+        .condition-select {
+            margin: 10px 0;
+        }
+        
+        .condition-select select {
+            background: #3d3d5c;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        
+        .execute-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        .execute-btn:hover {
+            background: #c0392b;
+        }
+        
+        .info {
+            background: #2d2d44;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .status {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Spaceship Grid Puzzle</h1>
+    <p>Program the spaceship to visit ALL squares! Click action slots to edit them.</p>
+    
+    <div class="container">
+        <div class="grid-container">
+            <div class="grid" id="grid"></div>
+            <div class="info">
+                <div class="status">Position: <span id="position"></span></div>
+                <div class="status">Facing: <span id="facing"></span></div>
+                <div class="status">Visited: <span id="visited-count">0</span> / <span id="total-squares">0</span></div>
+                <div id="status-message"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <h3>Function f1</h3>
+            <div class="function-builder" id="function-builder">
+                <!-- Action slots will be generated here -->
+            </div>
+            
+            <div id="action-editor" style="display: none;">
+                <h4>Edit Action Slot <span id="current-slot"></span></h4>
+                <div class="condition-select">
+                    <label>Condition: Execute only if on</label>
+                    <select id="condition-select">
+                        <option value="any">Any Color</option>
+                        <option value="blue">Blue Square</option>
+                        <option value="yellow">Yellow Square</option>
+                        <option value="green">Green Square</option>
+                    </select>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn forward" onclick="setAction('forward')">Forward</button>
+                    <button class="action-btn left" onclick="setAction('left')">Left Turn</button>
+                    <button class="action-btn right" onclick="setAction('right')">Right Turn</button>
+                    <button class="action-btn f1-call" onclick="setAction('f1')">Call f1</button>
+                    <button class="action-btn color-blue" onclick="setAction('color-blue')">Paint Blue</button>
+                    <button class="action-btn color-yellow" onclick="setAction('color-yellow')">Paint Yellow</button>
+                </div>
+                
+                <button onclick="clearAction()">Clear Action</button>
+                <button onclick="closeEditor()">Done</button>
+            </div>
+            
+            <button class="execute-btn" onclick="executeFunction()">Execute f1</button>
+            <button onclick="resetGrid()" style="background: #555; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; margin: 5px 0;">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // Grid structure: 9 wide, 8 tall, but with specific shape
+        const gridStructure = [
+            [1,1,1,1,1,1,1,1,1], // Top row complete
+            [0,1,0,0,1,0,0,0,1], // Only columns 2, 5, 9
+            [0,1,0,0,1,0,0,0,1],
+            [0,1,0,0,1,0,0,0,1],
+            [0,1,0,0,1,0,0,0,1],
+            [0,1,0,0,1,0,0,0,1],
+            [0,1,0,0,1,0,0,0,1],
+            [0,1,1,1,1,1,1,1,1]  // Bottom row (8 squares, positions 2-9)
+        ];
+        
+        // Color mapping for special squares
+        const specialColors = {
+            '0-0': 'blue',    // Top-left corner
+            '0-1': 'green',   // Column 2, top
+            '7-1': 'green',   // Column 2, bottom
+            '0-4': 'blue',    // Column 5, top (starting position)
+            '7-4': 'blue',    // Column 5, bottom
+            '0-8': 'blue',    // Column 9, top
+            '7-8': 'blue'     // Column 9, bottom
+        };
+        
+        let gameState = {
+            row: 0,
+            col: 4,
+            facing: 'left', // left, up, right, down
+            visited: new Set(),
+            grid: [],
+            functionSlots: Array(6).fill(null),
+            executing: false,
+            callStack: 0,
+            maxCallStack: 100
+        };
+        
+        function initializeGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            gameState.grid = [];
+            gameState.visited.clear();
+            gameState.visited.add('0-4'); // Starting position
+            
+            let totalSquares = 0;
+            
+            for (let row = 0; row < 8; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                gameState.grid[row] = [];
+                
+                for (let col = 0; col < 9; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (gridStructure[row][col] === 1) {
+                        // This is a valid square
+                        const key = `${row}-${col}`;
+                        const color = specialColors[key] || 'yellow';
+                        cell.className += ` ${color}`;
+                        gameState.grid[row][col] = color;
+                        totalSquares++;
+                        
+                        // Add spaceship if this is starting position
+                        if (row === 0 && col === 4) {
+                            cell.innerHTML = '<span class="spaceship">◄</span>';
+                            cell.classList.add('visited');
+                        }
+                    } else {
+                        // Empty space
+                        cell.className += ' empty';
+                        gameState.grid[row][col] = null;
+                    }
+                    
+                    rowDiv.appendChild(cell);
+                }
+                grid.appendChild(rowDiv);
+            }
+            
+            document.getElementById('total-squares').textContent = totalSquares;
+            updateStatus();
+        }
+        
+        function updateStatus() {
+            document.getElementById('position').textContent = `${gameState.row}-${gameState.col}`;
+            document.getElementById('facing').textContent = gameState.facing;
+            document.getElementById('visited-count').textContent = gameState.visited.size;
+        }
+        
+        function updateGrid() {
+            const cells = document.querySelectorAll('.cell');
+            let cellIndex = 0;
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 9; col++) {
+                    const cell = cells[cellIndex];
+                    cellIndex++;
+                    
+                    if (gameState.grid[row][col] !== null) {
+                        // Clear previous spaceship
+                        cell.innerHTML = '';
+                        
+                        // Add spaceship if this is current position
+                        if (row === gameState.row && col === gameState.col) {
+                            const spaceshipChar = {
+                                'left': '◄',
+                                'up': '▲', 
+                                'right': '►',
+                                'down': '▼'
+                            }[gameState.facing];
+                            cell.innerHTML = `<span class="spaceship">${spaceshipChar}</span>`;
+                        }
+                        
+                        // Update visited status
+                        const key = `${row}-${col}`;
+                        if (gameState.visited.has(key)) {
+                            cell.classList.add('visited');
+                        }
+                        
+                        // Update color
+                        cell.className = cell.className.replace(/\b(yellow|blue|green)\b/g, '');
+                        cell.classList.add(gameState.grid[row][col]);
+                    }
+                }
+            }
+            updateStatus();
+        }
+        
+        function initializeFunctionBuilder() {
+            const builder = document.getElementById('function-builder');
+            builder.innerHTML = '';
+            
+            for (let i = 0; i < 6; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'action-slot';
+                slot.innerHTML = `
+                    <strong>Slot ${i + 1}:</strong> 
+                    <span id="slot-${i}">${gameState.functionSlots[i] ? formatAction(gameState.functionSlots[i]) : 'Empty'}</span>
+                `;
+                slot.onclick = () => editSlot(i);
+                builder.appendChild(slot);
+            }
+        }
+        
+        function formatAction(action) {
+            if (!action) return 'Empty';
+            const conditionText = action.condition === 'any' ? '' : ` (if on ${action.condition})`;
+            return `${action.type}${conditionText}`;
+        }
+        
+        function editSlot(index) {
+            document.getElementById('action-editor').style.display = 'block';
+            document.getElementById('current-slot').textContent = index + 1;
+            document.getElementById('action-editor').dataset.slotIndex = index;
+            
+            // Load current action if exists
+            const current = gameState.functionSlots[index];
+            if (current) {
+                document.getElementById('condition-select').value = current.condition;
+            }
+        }
+        
+        function setAction(type) {
+            const slotIndex = parseInt(document.getElementById('action-editor').dataset.slotIndex);
+            const condition = document.getElementById('condition-select').value;
+            
+            gameState.functionSlots[slotIndex] = { type, condition };
+            document.getElementById(`slot-${slotIndex}`).textContent = formatAction(gameState.functionSlots[slotIndex]);
+        }
+        
+        function clearAction() {
+            const slotIndex = parseInt(document.getElementById('action-editor').dataset.slotIndex);
+            gameState.functionSlots[slotIndex] = null;
+            document.getElementById(`slot-${slotIndex}`).textContent = 'Empty';
+        }
+        
+        function closeEditor() {
+            document.getElementById('action-editor').style.display = 'none';
+        }
+        
+        function executeFunction() {
+            if (gameState.executing) return;
+            
+            gameState.executing = true;
+            gameState.callStack = 0;
+            document.getElementById('status-message').innerHTML = '<span class="success">Executing...</span>';
+            
+            executeF1();
+        }
+        
+        async function executeF1() {
+            gameState.callStack++;
+            if (gameState.callStack > gameState.maxCallStack) {
+                document.getElementById('status-message').innerHTML = '<span class="error">Stack overflow! Too many recursive calls.</span>';
+                gameState.executing = false;
+                return;
+            }
+            
+            for (let i = 0; i < 6; i++) {
+                if (!gameState.executing) break;
+                
+                const action = gameState.functionSlots[i];
+                if (!action) continue;
+                
+                // Check condition
+                const currentColor = gameState.grid[gameState.row][gameState.col];
+                if (action.condition !== 'any' && action.condition !== currentColor) {
+                    continue;
+                }
+                
+                // Execute action
+                await executeAction(action.type);
+                await new Promise(resolve => setTimeout(resolve, 300)); // Delay for visualization
+            }
+            
+            gameState.callStack--;
+            if (gameState.callStack === 0) {
+                gameState.executing = false;
+                checkWinCondition();
+            }
+        }
+        
+        async function executeAction(type) {
+            switch (type) {
+                case 'forward':
+                    moveForward();
+                    break;
+                case 'left':
+                    turnLeft();
+                    break;
+                case 'right':
+                    turnRight();
+                    break;
+                case 'f1':
+                    await executeF1();
+                    break;
+                case 'color-blue':
+                    changeColor('blue');
+                    break;
+                case 'color-yellow':
+                    changeColor('yellow');
+                    break;
+            }
+            updateGrid();
+        }
+        
+        function moveForward() {
+            let newRow = gameState.row;
+            let newCol = gameState.col;
+            
+            switch (gameState.facing) {
+                case 'left': newCol--; break;
+                case 'right': newCol++; break;
+                case 'up': newRow--; break;
+                case 'down': newRow++; break;
+            }
+            
+            // Check bounds and valid square
+            if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 9 || 
+                !gameState.grid[newRow] || gameState.grid[newRow][newCol] === null) {
+                document.getElementById('status-message').innerHTML = '<span class="error">CRASH! Spaceship fell off the grid!</span>';
+                gameState.executing = false;
+                return;
+            }
+            
+            gameState.row = newRow;
+            gameState.col = newCol;
+            gameState.visited.add(`${newRow}-${newCol}`);
+        }
+        
+        function turnLeft() {
+            const directions = ['up', 'left', 'down', 'right'];
+            const currentIndex = directions.indexOf(gameState.facing);
+            gameState.facing = directions[(currentIndex + 1) % 4];
+        }
+        
+        function turnRight() {
+            const directions = ['up', 'right', 'down', 'left'];
+            const currentIndex = directions.indexOf(gameState.facing);
+            gameState.facing = directions[(currentIndex + 1) % 4];
+        }
+        
+        function changeColor(color) {
+            gameState.grid[gameState.row][gameState.col] = color;
+        }
+        
+        function checkWinCondition() {
+            const totalSquares = parseInt(document.getElementById('total-squares').textContent);
+            if (gameState.visited.size === totalSquares) {
+                document.getElementById('status-message').innerHTML = '<span class="success">🎉 SUCCESS! You visited all squares!</span>';
+            } else {
+                document.getElementById('status-message').innerHTML = `<span style="color: #ffd700;">Visited ${gameState.visited.size}/${totalSquares} squares. Keep trying!</span>`;
+            }
+        }
+        
+        function resetGrid() {
+            gameState.row = 0;
+            gameState.col = 4;
+            gameState.facing = 'left';
+            gameState.visited.clear();
+            gameState.visited.add('0-4');
+            gameState.executing = false;
+            gameState.callStack = 0;
+            
+            // Reset colors to original
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (gameState.grid[row] && gameState.grid[row][col] !== null) {
+                        const key = `${row}-${col}`;
+                        gameState.grid[row][col] = specialColors[key] || 'yellow';
+                    }
+                }
+            }
+            
+            document.getElementById('status-message').textContent = '';
+            updateGrid();
+        }
+        
+        // Initialize
+        initializeGrid();
+        initializeFunctionBuilder();
+    </script>
+</body>
+</html>
